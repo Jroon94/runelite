@@ -136,6 +136,7 @@ public class TimersPlugin extends Plugin
 
 	private TimerTimer staminaTimer;
 	private TimerTimer buffTimer;
+	private TimerTimer remedyTimer;
 
 	private boolean imbuedHeartTimerActive;
 	private int nextPoisonTick;
@@ -365,6 +366,26 @@ public class TimersPlugin extends Plugin
 			}
 		}
 
+		if (event.getVarbitId() == Varbits.MENAPHITE_REMEDY && config.showMenaphiteRemedy())
+		{
+			int remedyDuration = event.getValue() * 25;
+			Duration duration = Duration.of(remedyDuration, RSTimeUnit.GAME_TICKS);
+
+			if (remedyDuration == 0)
+			{
+				removeGameTimer(MENAPHITE_REMEDY);
+				remedyTimer = null;
+			}
+			else if (remedyTimer == null)
+			{
+				remedyTimer = createGameTimer(MENAPHITE_REMEDY, duration);
+			}
+			else
+			{
+				remedyTimer.updateDuration(duration);
+			}
+		}
+
 		if (event.getVarbitId() == Varbits.LIQUID_ADERNALINE_ACTIVE && config.showLiquidAdrenaline())
 		{
 			if (event.getValue() == 1)
@@ -502,6 +523,12 @@ public class TimersPlugin extends Plugin
 		if (!config.showLiquidAdrenaline())
 		{
 			removeGameTimer(LIQUID_ADRENALINE);
+		}
+
+		if (!config.showMenaphiteRemedy())
+		{
+			removeGameTimer(MENAPHITE_REMEDY);
+			remedyTimer = null;
 		}
 
 		if (!config.showSilkDressing())
@@ -762,7 +789,18 @@ public class TimersPlugin extends Plugin
 			}
 			else if (message.contains(RESURRECT_THRALL_MESSAGE_START) && message.endsWith(RESURRECT_THRALL_MESSAGE_END))
 			{
-				createGameTimer(RESURRECT_THRALL, Duration.of(client.getBoostedSkillLevel(Skill.MAGIC), RSTimeUnit.GAME_TICKS));
+				// by default the thrall lasts 1 tick per magic level
+				int t = client.getBoostedSkillLevel(Skill.MAGIC);
+				// ca tiers being completed boosts this
+				if (client.getVarbitValue(Varbits.COMBAT_ACHIEVEMENT_TIER_GRANDMASTER) == 2)
+				{
+					t += t; // 100% boost
+				}
+				else if (client.getVarbitValue(Varbits.COMBAT_ACHIEVEMENT_TIER_MASTER) == 2)
+				{
+					t += t / 2; // 50% boost
+				}
+				createGameTimer(RESURRECT_THRALL, Duration.of(t, RSTimeUnit.GAME_TICKS));
 			}
 			else if (message.contains(RESURRECT_THRALL_DISAPPEAR_MESSAGE_START) && message.endsWith(RESURRECT_THRALL_DISAPPEAR_MESSAGE_END))
 			{
